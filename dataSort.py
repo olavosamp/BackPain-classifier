@@ -34,6 +34,25 @@ def dataSplit(x, y, trainSplit, testSplit=0, valSplit=0):
 
 	return x_train, y_train, x_test, y_test, x_val, y_val
 
+# Intruder removal
+def intruderRemoval(x, y, limit):
+	# TODO: FIX THIS
+	# for each dimension of x, take mean and std
+	xMeans = np.mean(x, axis=1, keepdims=True, dtype=np.float64)
+	xStds  = np.std(x, axis=1, keepdims=True, dtype=np.float64)
+
+	print("xMeans shape: ", xMeans.shape)
+	print("xStds shape: ", xStds.shape)
+
+	mean = np.mean(xMeans, dtype=np.float64)
+	std  = np.mean(xStds, dtype=np.float64)
+
+	index = np.where(x <= limit*xStds, 1, 0)
+	xNew = x[index == 1]
+	# yNew = y[index == 1]
+
+	return xNew#, yNew
+
 # Perform K-Folds training
 def kFolds(x, y, trainSplit):
 	m = x.shape[0]				# Dataset size

@@ -3,8 +3,12 @@ import time
 
 import numpy 			 as np
 import numpy.matlib 	 as matlib
+
 import matplotlib.pyplot as pyplot
+
 import pandas 			 as pd
+
+from sklearn.decomposition import PCA
 
 from keras 				import utils
 from keras.models 		import Sequential
@@ -12,7 +16,7 @@ from keras.layers 		import Dense, Activation
 from keras.optimizers 	import SGD
 from keras.callbacks 	import EarlyStopping
 
-from dataSort			import dataSplit, dataShuffle#, kFolds
+import dataSort 		as dataSort
 
 dataPath = ".\dataset\Dataset_spine.csv"
 
@@ -20,12 +24,12 @@ weightPath = ".\weights.txt"
 
 data = pd.read_csv(dataPath)
 
-initNum = 100					# Number of training runs
+initNum = 1					# Number of training runs
 inputSize = data.shape[0]		# Number of entries in the dataset
 K = 2							# Number of classes. Always equals 2 for binary classification
 
 dataDim = data.shape[1]
-data = data.drop(data.columns[dataDim-1], 1)
+data = data.drop(data.columns[dataDim-1], 1)	# Drop last columns, as it contains only comments
 dataDim = data.shape[1]
 
 print(data.shape)
@@ -43,24 +47,41 @@ y = utils.to_categorical(y, K)
 
 inputDim = x.shape[1]
 
+# print("--Antes de PCA--")
+# print("X shape: ", x.shape)
+# print(x[:5])
+
+# # Apply PCA for dimensionality reduction
+# pcaX = PCA(n_components=0.9)
+# xNew = pcaX.fit_transform(x)
+
+
+print("--Antes de IR--")
+print("X shape: ", x.shape)
+print(x[:5])
+
+
+xNew= dataSort.intruderRemoval(x, y, 2)
+
 ## Input Normalization and scaling
 xMeans = np.mean(x, keepdims=True, dtype=np.float64)
 xStds  = np.std(x, keepdims=True, dtype=np.float64)
 x = (x - xMeans)/xStds
 
-# print("")
-# print("X shape: ", x.shape)
-# print(x[:5])
+print("")
+print("--Depois de IR--")
+print("X shape: ", xNew.shape)
+print(xNew[:5])
 
-# print("")
-# print("Y shape: ", y.shape)
-# print(y[:5])
+print("")
+print("Y shape: ", y.shape)
+print(y[:5])
 
 ## Network architecture
 neurons1 = 50
 neurons2 = 50
 
-resultsPath = ".\Results\\"  + time.strftime("%Y-%m-%d %Hh%Mm%S") + " N1 "+ str(neurons1) + " N2 "+ str(neurons2) + ".xls"
+resultsPath = ".\Results\\PCA "  + time.strftime("%Y-%m-%d %Hh%Mm%S") + " N1 "+ str(neurons1) + " N2 "+ str(neurons2) + ".xls"
 
 ## Network hyperparameters
 learningRate = 0.01
@@ -73,12 +94,12 @@ numEpochs = np.empty(initNum)
 
 for i in range(initNum):
 	# Shuffle dataset
-	x, y = dataShuffle(x, y)
+	x, y = dataSort.dataShuffle(x, y)
 
 	# Split data
 	trainSplit = 0.7
 	#xFolds, yFolds = kFolds(x, y, trainSplit)
-	x_train, y_train, x_test, y_test, x_val, y_val = dataSplit(x, y, trainSplit)
+	x_train, y_train, x_test, y_test, x_val, y_val = dataSort.dataSplit(x, y, trainSplit)
 
 	# print("")
 	# print("X shape: ", x.shape)
@@ -130,13 +151,13 @@ for i in range(initNum):
 	metrics[i-1,:] = model.evaluate(x_test, y_test, batch_size=batchSize)
 	#y_pred = model.predict(x_test, batch_size=batchSize)
 
-# Save to Excel file
-results = pd.DataFrame({'Accuracy': metrics[:, 1], 'Loss': metrics[:, 0], 'Elapsed time': eta, 'Epochs': numEpochs})
-results.to_excel(resultsPath, sheet_name='Results',  index=True)
+# # Save to Excel file
+# results = pd.DataFrame({'Accuracy': metrics[:, 1], 'Loss': metrics[:, 0], 'Elapsed time': eta, 'Epochs': numEpochs})
+# results.to_excel(resultsPath, sheet_name='Results',  index=True)
 
-print("")
-print("")
-print(results.head())
+# print("")
+# print("")
+# print(results.head())
 
 
 # Information
