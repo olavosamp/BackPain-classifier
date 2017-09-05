@@ -36,19 +36,13 @@ def dataSplit(x, y, trainSplit, testSplit=0, valSplit=0):
 	return x_train, y_train, x_test, y_test, x_val, y_val
 
 # Intruder removal
-def intruderRemoval(x, y, limit):
-	xStds  = np.std(x, axis=0, keepdims=True, dtype=np.float64)
-	
-	print("xStds shape: ", xStds.shape)
+def intruderRemoval(x, y, limit, intruders=-1):
+	if intruders == -1:
+		xStds  = np.std(x, axis=0, keepdims=True, dtype=np.float64)
+		mask = np.absolute(x) > np.multiply(xStds, limit)
 
-	mask = np.absolute(x) > np.multiply(xStds, limit)
-	
-	print("Mask")
-	#mask = np.absolute(xTest) > xNewStds
-	print(mask.shape)
-	print(np.sum(mask, 1).shape)
+		intruders = np.where(np.sum(mask, 1))
 
-	intruders = np.where(np.sum(mask, 1))
 	print("intruder indexes: \n", intruders)
 
 	xNew = np.delete(x, intruders, 0)
