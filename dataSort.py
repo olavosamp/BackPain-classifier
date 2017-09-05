@@ -1,4 +1,5 @@
 import numpy 			 as np
+import math
 
 # Shuffle / permute dataset
 def dataShuffle(x, y):
@@ -36,22 +37,24 @@ def dataSplit(x, y, trainSplit, testSplit=0, valSplit=0):
 
 # Intruder removal
 def intruderRemoval(x, y, limit):
-	# TODO: FIX THIS
-	# for each dimension of x, take mean and std
-	xMeans = np.mean(x, axis=1, keepdims=True, dtype=np.float64)
-	xStds  = np.std(x, axis=1, keepdims=True, dtype=np.float64)
-
-	print("xMeans shape: ", xMeans.shape)
+	xStds  = np.std(x, axis=0, keepdims=True, dtype=np.float64)
+	
 	print("xStds shape: ", xStds.shape)
 
-	mean = np.mean(xMeans, dtype=np.float64)
-	std  = np.mean(xStds, dtype=np.float64)
+	mask = np.absolute(x) > np.multiply(xStds, limit)
+	
+	print("Mask")
+	#mask = np.absolute(xTest) > xNewStds
+	print(mask.shape)
+	print(np.sum(mask, 1).shape)
 
-	index = np.where(x <= limit*xStds, 1, 0)
-	xNew = x[index == 1]
-	# yNew = y[index == 1]
+	intruders = np.where(np.sum(mask, 1))
+	print("intruder indexes: \n", intruders)
 
-	return xNew#, yNew
+	xNew = np.delete(x, intruders, 0)
+	yNew = np.delete(y, intruders, 0)
+
+	return xNew, yNew
 
 # Perform K-Folds training
 def kFolds(x, y, trainSplit):
@@ -76,3 +79,6 @@ def kFolds(x, y, trainSplit):
 		yFolds = np.reshape(y, yNewShape)
 
 	return xFolds, yFolds
+
+def gaussian(x, mu, sig):
+    return 1./(math.sqrt(2.*math.pi)*sig)*np.exp(-np.power((x - mu)/sig, 2.)/2)
