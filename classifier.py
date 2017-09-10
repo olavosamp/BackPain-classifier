@@ -13,9 +13,10 @@ from keras 					import utils
 from keras.models 			import Sequential
 from keras.layers 			import Dense, Activation
 from keras.optimizers 		import SGD
+from keras.losses 			import mean_squared_logarithmic_error
 from keras.callbacks 		import EarlyStopping
 
-import dataSort 		as dataSort
+import dataSort 			as dataSort
 
 dataPath = ".\dataset\Dataset_spine.csv"
 weightPath = ".\weights.txt"
@@ -48,7 +49,7 @@ y = utils.to_categorical(y, K)		# y[:, 0] -> Positive Class
 print("")
 print("--Original--")
 print("X shape: ", x.shape)
-print(x[:10])
+# print(x[:10])
 
 ## Input Normalization and scaling
 xMeans = np.mean(x, keepdims=True, dtype=np.float64)
@@ -58,18 +59,18 @@ x = (x - xMeans)/xStds
 print("")
 print("--Depois de norm--")
 print("X shape: ", x.shape)
-print(x[:10])
+# print(x[:10])
 
 ## Apply PCA for dimensionality reduction
-# pcaPercentage = 0.8
+# pcaPercentage = 0.99
 # pcaX = PCA(n_components=pcaPercentage)
 # x = pcaX.fit_transform(x)
 
 inputDim = x.shape[1]			# New shape after compression
 
-# print("")
-# print("--Depois de PCA--")
-# print("X shape: ", x.shape)
+print("")
+print("--Depois de PCA--")
+print("X shape: ", x.shape)
 # print(x[:10])
 
 ## Intruder Removal
@@ -82,7 +83,7 @@ print("")
 print("--Depois de IR--")
 print("Y shape: ", y.shape)
 print("X shape: ", x.shape)
-print(x[:10])
+# print(x[:10])
 
 print("\nClass populations: ", np.sum(y, 0))
 
@@ -90,24 +91,27 @@ print("\nClass populations: ", np.sum(y, 0))
 # neurons1 = 30
 neurons2 = 0
 
-neuronsArray = [ 150 ] 
+neuronsArray = [ 30 ] 
 
 for neurons1 in neuronsArray:
-	print("Neurons1: ", neurons1)
-	#neurons2 = neurons1
+	print("\nNeurons1: ", neurons1)
+	neurons2 = neurons1
 
 	resultsPath = ".\Results\\"  + time.strftime("%Y-%m-%d %Hh%Mm%S") + " N1 "+ str(neurons1) + " N2 "+ str(neurons2) + ".xls"
 
 	## Network hyperparameters
 	learningRate = 0.01
-	momentum=0.9
+	momentum=0
 
 	maxEpochs = 1000
 	batchSize = 8
-	initNum = 10				#Number of random initializations
+	initNum = 250				#Number of random initializations
+
+	bestLoss = -1
+	bestLossVal = -1
 
 	eta 	  = np.empty(initNum)
-	metrics   = np.empty((initNum, 2))
+	metrics   = np.empty((initNum, 3))
 	numEpochs = np.empty(initNum)
 
 	for i in range(initNum):
@@ -135,10 +139,10 @@ for neurons1 in neuronsArray:
 
 		# Configure optimizer
 		sgd = SGD(lr=learningRate, momentum=momentum)
-		model.compile(loss="categorical_crossentropy", optimizer=sgd, metrics=['categorical_accuracy'])
+		model.compile(loss="categorical_crossentropy", optimizer=sgd, metrics=['categorical_accuracy', "mean_squared_logarithmic_error"])
 
 		# Configure callbacks
-		earlyStop = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=10, verbose=1)
+		earlyStop = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=30, verbose=1)
 
 		# Train Network
 		print("\nInit number: ", i+1)
@@ -154,28 +158,34 @@ for neurons1 in neuronsArray:
 		metrics[i-1,:] = model.evaluate(x_test, y_test, batch_size=batchSize)
 		#y_pred = model.predict(x_test, batch_size=batchSize)
 
+		# Get squared log loss
+		# mean_squared_logarithmic_error(y_true, y_pred)
+
         # Save best result, checking val_loss
-        if bestLossVal == -1:
-            bestLoss = min(hist.history['loss'])
-            bestHist = hist.history['loss']
-            
-            bestLossVal = min(hist.history['val_loss'])
-            bestHistVal = hist.history['val_loss']
-        elif min(hist.history['val_loss']) < bestLossVal:
-            bestLoss = min(hist.history['loss'])
-            bestHist = hist.history['loss']
-            
-            bestLossVal = min(hist.history['val_loss'])
-            bestHistVal = hist.history['val_loss']
+		if bestLossVal == -1:
+		    bestLoss = min(hist.history['loss'])
+		    bestHist = hist.history['loss']
+		    
+		    bestLossVal = min(hist.history['val_loss'])
+		    bestHistVal = hist.history['val_loss']
+		elif min(hist.history['val_loss']) < bestLossVal:
+		    bestLoss = min(hist.history['loss'])
+		    bestHist = hist.history['loss']
+		    
+		    bestLossVal = min(hist.history['val_loss'])
+		    bestHistVal = hist.history['val_loss']
 
 
 	## Save to Excel file
-	# results = pd.DataFrame({'Accuracy': metrics[:, 1], 'Loss': metrics[:, 0], 'Elapsed time': eta, 'Epochs': numEpochs, 'Acc Mean': np.mean(metrics[:, 1]), 'Acc Std': np.std(metrics[:, 1])})
-	# results.to_excel(resultsPath, sheet_name='Results',  index=True)
+	results = pd.DataFrame({'Accuracy': metrics[:, 1], 'Crossentropy': metrics[:, 0], 'MSLogE1': metrics[:,2], 'Elapsed time': eta, 'Epochs': numEpochs, 'Acc Mean': np.mean(metrics[:, 1]), 'Acc Std': np.std(metrics[:, 1])})
+	results.to_excel(resultsPath, sheet_name='Results',  index=True)
 
+	## Plot error history
 	numEpochs = len(bestHist)
 
+	print("")
 	print("Min train loss: ", bestLoss)
+	print("Min val loss: ", bestLossVal)
 	print("Total epochs: ", numEpochs)
 
 	pyplot.plot(range(numEpochs), bestHist)
@@ -188,6 +198,7 @@ for neurons1 in neuronsArray:
 	print("Elapsed time: ", np.sum(eta))
 	print("Elapsed time per epoch: ", np.mean(eta)/np.sum(numEpochs))
 	print("Test Loss, Min: ", min(metrics[:, 0]))
+	print("Test log MSE, Min: ", min(metrics[:, 2]))
 	print("Test Accuracy")
 	print("   Max : ", max(metrics[:, 1]))
 	print("   Mean: ", np.mean(metrics[:, 1]))
