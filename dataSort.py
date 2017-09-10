@@ -35,6 +35,43 @@ def dataSplit(x, y, trainSplit, testSplit=0, valSplit=0):
 
 	return x_train, y_train, x_test, y_test, x_val, y_val
 
+## Split-balance
+def splitBalance(xNeg, yNeg, xPos, yPos, trainSplit):
+	x_trainNeg, y_trainNeg, x_testNeg, y_testNeg, x_valNeg, y_valNeg = dataSplit(xNeg, yNeg, trainSplit)
+	x_trainPos, y_trainPos, x_testPos, y_testPos, x_valPos, y_valPos = dataSplit(xPos, yPos, trainSplit)
+
+	# Double positive class
+	x_trainPos = np.concatenate((x_trainPos, x_trainPos))
+	y_trainPos = np.concatenate((y_trainPos, y_trainPos))
+
+	x_train = np.concatenate((x_trainNeg, x_trainPos))
+	y_train = np.concatenate((y_trainNeg, y_trainPos))
+
+	x_test = np.concatenate((x_testNeg, x_testPos))
+	y_test = np.concatenate((y_testNeg, y_testPos))
+
+	x_val = np.concatenate((x_valNeg, x_valPos))
+	y_val = np.concatenate((y_valNeg, y_valPos))
+
+	return x_train, y_train, x_test, y_test, x_val, y_val
+
+# Split dataset in two classes
+def popSplit(x, y):
+	iNeg = np.where(y[:, 1] == 1, 1, 0)
+	iPos = np.where(y[:, 0] == 1, 1, 0)
+
+	yNeg = y[iNeg == 1]
+	yPos = y[iPos == 1]
+
+	xNeg = x[iNeg == 1]
+	xPos = x[iPos == 1]
+
+	# Double positive class
+	# xPos = np.concatenate((xPos, xPos))
+	# yPos = np.concatenate((yPos, yPos))
+
+	return xNeg, yNeg, xPos, yPos
+
 ## Intruder removal
 def intruderRemoval(x, y, limit, intruders=-1):
 	# Set intruders = -1 to find the intruders

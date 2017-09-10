@@ -43,8 +43,8 @@ inputDim = x.shape[1]
 
 ## Unwrap labels
 y = np.where(y == "Abnormal", 1, 0)	# where(condition, True value, False value)
-y = utils.to_categorical(y, K)		# y[:, 0] -> Positive Class
-									# y[:, 1] -> Negative Class
+y = utils.to_categorical(y, K)		# y[:] = [0, 1] -> Positive Class
+									# y[:] = [1, 0] -> Negative Class
 
 print("")
 print("--Original--")
@@ -88,9 +88,6 @@ print("X shape: ", x.shape)
 print("\nClass populations: ", np.sum(y, 0))
 
 ## Network architecture
-# neurons1 = 30
-neurons2 = 0
-
 neuronsArray = [ 30 ] 
 
 for neurons1 in neuronsArray:
@@ -109,19 +106,21 @@ for neurons1 in neuronsArray:
 
 	bestLoss = -1
 	bestLossVal = -1
-
 	eta 	  = np.empty(initNum)
 	metrics   = np.empty((initNum, 3))
 	numEpochs = np.empty(initNum)
 
 	for i in range(initNum):
-		## Shuffle data
-		x, y = dataSort.dataShuffle(x, y)
+		## Separate the two classes
+		xNeg, yNeg, xPos, yPos = dataSort.popSplit(x, y)
 
-		# Split data
+		## Shuffle each class
+		xNeg, yNeg = dataSort.dataShuffle(xNeg, yNeg)
+		xPos, yPos = dataSort.dataShuffle(xPos, yPos)
+
+		## Split data and balance classes
 		trainSplit = 0.7
-		#x_train, y_train, x_test, y_test, x_val, y_val = kFolds(x, y, trainSplit)
-		x_train, y_train, x_test, y_test, x_val, y_val = dataSort.dataSplit(x, y, trainSplit)
+		x_train, y_train, x_test, y_test, x_val, y_val = dataSort.splitBalance(xNeg, yNeg, xPos, yPos, trainSplit)
 
 		model = Sequential()
 
