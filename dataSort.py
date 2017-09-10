@@ -1,7 +1,7 @@
 import numpy 			 as np
 import math
 
-# Shuffle / permute dataset
+## Shuffle / permute dataset
 def dataShuffle(x, y):
 	inputSize = x.shape[0]
 
@@ -11,7 +11,7 @@ def dataShuffle(x, y):
 
 	return newX, newY
 
-# Split the dataset in Training, Test and Validation
+## Split the dataset in Training, Test and Validation
 def dataSplit(x, y, trainSplit, testSplit=0, valSplit=0):
 	m = x.shape[0]				# Dataset size
 
@@ -35,8 +35,10 @@ def dataSplit(x, y, trainSplit, testSplit=0, valSplit=0):
 
 	return x_train, y_train, x_test, y_test, x_val, y_val
 
-# Intruder removal
+## Intruder removal
 def intruderRemoval(x, y, limit, intruders=-1):
+	# Set intruders = -1 to find the intruders
+	# Set intruders to an array to remove pre-selected elements
 	if intruders == -1:
 		xStds  = np.std(x, axis=0, keepdims=True, dtype=np.float64)
 		mask = np.absolute(x) > np.multiply(xStds, limit)
@@ -50,29 +52,43 @@ def intruderRemoval(x, y, limit, intruders=-1):
 
 	return xNew, yNew
 
-# Perform K-Folds training
-def kFolds(x, y, trainSplit):
-	m = x.shape[0]				# Dataset size
-	folds = 20					# Test and validation sets will be determined from the training set
-								# trainSplit must be a multiple of 5
+## K-Folds training
+def kFolds(x, y, folds=5, index=1):
+	index = index%folds
 
-	testSplit = (1-trainSplit)/2
-	valSplit = testSplit
+	m   = x.shape[0]				# Dataset size
+	dim = x.shape[1]				# Input dimension
 
-	foldSize = np.floor(m/folds).astype(int)
+	trainFolds = int(0.6*folds)		# Training: 	3 folds
+	testFolds = int(0.2*folds)		# Test and val: 1 fold/ea
 
-	if (folds*foldSize) != m:
-		print("Error: Folds don't fit the data")
-		return 1
+	# The flooring causes trailing elements to be discarded
+	foldSize = np.floor(m/folds).astype(int) 
 
-	if (folds*foldSize) == m:
-		xNewShape = (foldSize, x.shape[1], folds)
-		yNewShape = (foldSize, y.shape[1], folds)
+	xFolds = np.empty((folds, foldSize, dim))
+	yFolds = np.empty((folds, foldSize, 2))
 
-		xFolds = np.reshape(x, xNewShape)
-		yFolds = np.reshape(y, yNewShape)
+	# Create fold array
+	for i in range(folds-1):
+		xFolds[i] = x[i*foldSize:(i+1)*foldSize]
+		yFolds[i] = y[i*foldSize:(i+1)*foldSize]
 
-	return xFolds, yFolds
+	# Shift the folds
+	xFolds = np.roll(xFolds, index, 0)
+	yFolds = np.roll(yFolds, index, 0)
 
+	# Assign folds to each set
+	x_train = np.reshape(xFolds[:trainFolds], (trainFolds*foldSize, dim))
+	y_train = np.reshape(yFolds[:trainFolds], (trainFolds*foldSize, 2))
+
+	x_test  = np.reshape(xFolds[trainFolds:trainFolds+testFolds], (testFolds*foldSize, dim))
+	y_test  = np.reshape(yFolds[trainFolds:trainFolds+testFolds], (testFolds*foldSize, 2))
+
+	x_val   = np.reshape(xFolds[trainFolds+testFolds:], (testFolds*foldSize, dim))
+	y_val   = np.reshape(yFolds[trainFolds+testFolds:], (testFolds*foldSize, 2))
+
+	return x_train, y_train, x_test, y_test, x_val, y_val
+
+# Compute Gaussian PDF for given x
 def gaussian(x, mu, sig):
     return 1./(math.sqrt(2.*math.pi)*sig)*np.exp(-np.power((x - mu)/sig, 2.)/2)
