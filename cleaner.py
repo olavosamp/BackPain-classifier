@@ -96,9 +96,16 @@ print("\nClass populations test: ", np.sum(y_test, 0))
 print("\nClass populations val: ", np.sum(y_val, 0))
 
 ## Apply PCA for dimensionality reduction
-# pcaPercentage = 0.99
+pcaPercentage = 0.99
 # pcaX = PCA(n_components=pcaPercentage)
 # x = pcaX.fit_transform(x)
+
+pcaX = PCA()
+pcaX.fit_transform(x)
+print("\nPCA variance:\n")
+print(pcaX.explained_variance_)
+print("Components: ", pcaX.components_)
+
 
 inputDim = x.shape[1]			# New shape after compression
 

@@ -62,9 +62,9 @@ print("X shape: ", x.shape)
 # print(x[:10])
 
 ## Apply PCA for dimensionality reduction
-# pcaPercentage = 0.99
-# pcaX = PCA(n_components=pcaPercentage)
-# x = pcaX.fit_transform(x)
+pcaPercentage = 0.99
+pcaX = PCA(n_components=pcaPercentage)
+x = pcaX.fit_transform(x)
 
 inputDim = x.shape[1]			# New shape after compression
 
@@ -102,8 +102,8 @@ for neurons1 in neuronsArray:
 
 	maxEpochs = 1000
 	batchSize = 8
-	initNum = 10				# Number of random initializations
-	boundary = 0.5			# Class separation boundary
+	initNum = 100				# Number of random initializations
+	boundary = 0.40			# Class separation boundary
 
 	bestLoss = -1
 	bestLossVal = -1
@@ -112,16 +112,20 @@ for neurons1 in neuronsArray:
 	numEpochs = np.empty(initNum)
 
 	for i in range(initNum):
-		## Separate the two classes
-		xNeg, yNeg, xPos, yPos = dataSort.popSplit(x, y)
+		# ## Separate the two classes
+		# xNeg, yNeg, xPos, yPos = dataSort.popSplit(x, y)
 
-		## Shuffle each class
-		xNeg, yNeg = dataSort.dataShuffle(xNeg, yNeg)
-		xPos, yPos = dataSort.dataShuffle(xPos, yPos)
+		# ## Shuffle each class
+		# xNeg, yNeg = dataSort.dataShuffle(xNeg, yNeg)
+		# xPos, yPos = dataSort.dataShuffle(xPos, yPos)
 
-		## Split data and balance classes
+		# ## Split data and balance classes
+		# trainSplit = 0.7
+		# x_train, y_train, x_test, y_test, x_val, y_val = dataSort.splitBalance(xNeg, yNeg, xPos, yPos, trainSplit)
+
+		# Split data in train, validation, test
 		trainSplit = 0.7
-		x_train, y_train, x_test, y_test, x_val, y_val = dataSort.splitBalance(xNeg, yNeg, xPos, yPos, trainSplit)
+		x_train, y_train, x_test, y_test, x_val, y_val = dataSort.dataSplit(x, y, trainSplit)
 
 		model = Sequential()
 
@@ -184,20 +188,13 @@ for neurons1 in neuronsArray:
 			vP, vN, fP, fN = dataSort.confMatrix(y_pred, y_test, boundary)
 
 		# Get classifier metrics
-		print("")
-		print(y_pred)
-		# print("vP :", vP)
-		# print("vN :", vN)
-		# print("fP :", fP)
-		# print("fN :", fN)
-
 		accuracy = (vP + vN)/(vP + vN + fP + fN)
-		sensibility = vP/(vP + fN)
+		sensitivity = vP/(vP + fN)
 		specificity = vN/(vN + vP)
 
 	## Save to Excel file
-	# results = pd.DataFrame({'Accuracy': metrics[:, 1], 'Crossentropy': metrics[:, 0], 'MSLogE1': metrics[:,2], 'Elapsed time': eta, 'Epochs': numEpochs, 'Acc Mean': np.mean(metrics[:, 1]), 'Acc Std': np.std(metrics[:, 1])})
-	# results.to_excel(resultsPath, sheet_name='Results',  index=True)
+	results = pd.DataFrame({'Accuracy': metrics[:, 1], 'Crossentropy': metrics[:, 0], 'MSLogE1': metrics[:,2], 'Elapsed time': eta, 'Epochs': numEpochs, 'Acc Mean': np.mean(metrics[:, 1]), 'Acc Std': np.std(metrics[:, 1]), 'Sensitivity': sensitivity, 'Specificity': specificity})
+	results.to_excel(resultsPath, sheet_name='Results',  index=True)
 
 	## Plot error history
 	numEpochs = len(bestHist)
@@ -224,7 +221,7 @@ for neurons1 in neuronsArray:
 	print("")
 	print("Conf Matrix:")
 	print("		Accuracy: ", accuracy)
-	print("		Sensibility: ", sensibility)
+	print("		Sensitivity: ", sensitivity)
 	print("		Specificity: ", specificity)
 
 
