@@ -126,6 +126,24 @@ def kFolds(x, y, folds=5, index=1):
 
 	return x_train, y_train, x_test, y_test, x_val, y_val
 
+def confMatrix(y_pred, y_test, boundary):
+		# y[:] = [0, 1] -> Positive Class
+		# y[:] = [1, 0] -> Negative Class
+	y_pred = (y_pred >= boundary)
+
+	vP = np.sum(np.logical_and((y_pred[:, 1] == 1), (y_test[:, 1] == 1)))
+	vN = np.sum(np.logical_and((y_pred[:, 0] == 1), (y_test[:, 0] == 1)))
+	fP = np.sum(np.logical_and((y_pred[:, 1] == 1), (y_test[:, 0] == 1)))
+	fN = np.sum(np.logical_and((y_pred[:, 0] == 1), (y_test[:, 1] == 1)))
+
+	# vP = np.logical_and((y_pred[:, 1] == 1), (y_test[:, 1] == 1))
+	# vN = np.logical_and((y_pred[:, 0] == 1), (y_test[:, 0] == 1))
+	# fP = np.logical_and((y_pred[:, 1] == 1), (y_test[:, 0] == 1))
+	# fN = np.logical_and((y_pred[:, 0] == 1), (y_test[:, 1] == 1))
+
+
+	return vP, vN, fP, fN
+
 # Compute Gaussian PDF for given x
 def gaussian(x, mu, sig):
     return 1./(math.sqrt(2.*math.pi)*sig)*np.exp(-np.power((x - mu)/sig, 2.)/2)

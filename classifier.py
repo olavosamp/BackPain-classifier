@@ -102,7 +102,8 @@ for neurons1 in neuronsArray:
 
 	maxEpochs = 1000
 	batchSize = 8
-	initNum = 250				#Number of random initializations
+	initNum = 10				# Number of random initializations
+	boundary = 0.5			# Class separation boundary
 
 	bestLoss = -1
 	bestLossVal = -1
@@ -155,29 +156,48 @@ for neurons1 in neuronsArray:
 
 		# Test trained model
 		metrics[i-1,:] = model.evaluate(x_test, y_test, batch_size=batchSize)
-		#y_pred = model.predict(x_test, batch_size=batchSize)
+		y_pred = model.predict(x_test, batch_size=batchSize)
+
 
 		# Get squared log loss
 		# mean_squared_logarithmic_error(y_true, y_pred)
 
         # Save best result, checking val_loss
 		if bestLossVal == -1:
-		    bestLoss = min(hist.history['loss'])
-		    bestHist = hist.history['loss']
-		    
-		    bestLossVal = min(hist.history['val_loss'])
-		    bestHistVal = hist.history['val_loss']
-		elif min(hist.history['val_loss']) < bestLossVal:
-		    bestLoss = min(hist.history['loss'])
-		    bestHist = hist.history['loss']
-		    
-		    bestLossVal = min(hist.history['val_loss'])
-		    bestHistVal = hist.history['val_loss']
+			bestLoss = min(hist.history['loss'])
+			bestHist = hist.history['loss']
 
+			bestLossVal = min(hist.history['val_loss'])
+			bestHistVal = hist.history['val_loss']
+
+			# Confusion matrix
+			vP, vN, fP, fN = dataSort.confMatrix(y_pred, y_test, boundary)
+
+		elif min(hist.history['val_loss']) < bestLossVal:
+			bestLoss = min(hist.history['loss'])
+			bestHist = hist.history['loss']
+
+			bestLossVal = min(hist.history['val_loss'])
+			bestHistVal = hist.history['val_loss']
+
+			# Confusion matrix
+			vP, vN, fP, fN = dataSort.confMatrix(y_pred, y_test, boundary)
+
+		# Get classifier metrics
+		print("")
+		print(y_pred)
+		# print("vP :", vP)
+		# print("vN :", vN)
+		# print("fP :", fP)
+		# print("fN :", fN)
+
+		accuracy = (vP + vN)/(vP + vN + fP + fN)
+		sensibility = vP/(vP + fN)
+		specificity = vN/(vN + vP)
 
 	## Save to Excel file
-	results = pd.DataFrame({'Accuracy': metrics[:, 1], 'Crossentropy': metrics[:, 0], 'MSLogE1': metrics[:,2], 'Elapsed time': eta, 'Epochs': numEpochs, 'Acc Mean': np.mean(metrics[:, 1]), 'Acc Std': np.std(metrics[:, 1])})
-	results.to_excel(resultsPath, sheet_name='Results',  index=True)
+	# results = pd.DataFrame({'Accuracy': metrics[:, 1], 'Crossentropy': metrics[:, 0], 'MSLogE1': metrics[:,2], 'Elapsed time': eta, 'Epochs': numEpochs, 'Acc Mean': np.mean(metrics[:, 1]), 'Acc Std': np.std(metrics[:, 1])})
+	# results.to_excel(resultsPath, sheet_name='Results',  index=True)
 
 	## Plot error history
 	numEpochs = len(bestHist)
@@ -185,7 +205,6 @@ for neurons1 in neuronsArray:
 	print("")
 	print("Min train loss: ", bestLoss)
 	print("Min val loss: ", bestLossVal)
-	print("Total epochs: ", numEpochs)
 
 	pyplot.plot(range(numEpochs), bestHist)
 	pyplot.plot(range(numEpochs), bestHistVal)
@@ -193,7 +212,7 @@ for neurons1 in neuronsArray:
 	## Information
 	# print(model.summary())
 	print('\n')
-	print("Epochs: ", np.mean(numEpochs))
+	print("Epochs: ", numEpochs)
 	print("Elapsed time: ", np.sum(eta))
 	print("Elapsed time per epoch: ", np.mean(eta)/np.sum(numEpochs))
 	print("Test Loss, Min: ", min(metrics[:, 0]))
@@ -201,6 +220,13 @@ for neurons1 in neuronsArray:
 	print("Test Accuracy")
 	print("   Max : ", max(metrics[:, 1]))
 	print("   Mean: ", np.mean(metrics[:, 1]))
+
+	print("")
+	print("Conf Matrix:")
+	print("		Accuracy: ", accuracy)
+	print("		Sensibility: ", sensibility)
+	print("		Specificity: ", specificity)
+
 
 	# # Show predictions
 	# print("----Predictions----")
